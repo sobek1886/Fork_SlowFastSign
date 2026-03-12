@@ -218,8 +218,8 @@ class Processor():
         if self.arg.dataset == 'CSL':
             dataset_list = zip(["train", "dev"], [True, False])
         elif 'phoenix' in self.arg.dataset:
-            dataset_list = zip(["train", "train_eval", "dev", "test"], [True, False, False, False]) 
-        elif self.arg.dataset == 'CSL-Daily':
+            dataset_list = zip(["train", "train_eval", "dev", "test"], [True, False, False, False])
+        elif self.arg.dataset in ('CSL-Daily', 'Isharah'):
             dataset_list = zip(["train", "train_eval", "dev", "test"], [True, False, False, False])
         for idx, (mode, train_flag) in enumerate(dataset_list):
             arg = self.arg.feeder_args

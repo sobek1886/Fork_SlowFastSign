@@ -24,7 +24,7 @@ global kernel_sizes
 
 class BaseFeeder(data.Dataset):
     def __init__(self, prefix, gloss_dict, dataset='phoenix2014', drop_ratio=1, num_gloss=-1, mode="train", transform_mode=True,
-                 datatype="lmdb", frame_interval=1, image_scale=1.0, kernel_size=1, input_size=224):
+                 datatype="lmdb", frame_interval=1, image_scale=1.0, kernel_size=1, input_size=224, max_samples=0):
         self.mode = mode
         self.ng = num_gloss
         self.prefix = prefix
@@ -32,13 +32,17 @@ class BaseFeeder(data.Dataset):
         self.data_type = datatype
         self.dataset = dataset
         self.input_size = input_size
-        global kernel_sizes 
+        global kernel_sizes
         kernel_sizes = kernel_size
         self.frame_interval = frame_interval # not implemented for read_features()
         self.image_scale = image_scale # not implemented for read_features()
         self.feat_prefix = f"{prefix}/features/fullFrame-256x256px/{mode}"
         self.transform_mode = "train" if transform_mode else "test"
         self.inputs_list = np.load(f"./preprocess/{dataset}/{mode}_info.npy", allow_pickle=True).item()
+        if max_samples > 0:
+            int_keys = sorted(k for k in self.inputs_list if isinstance(k, int))[:max_samples]
+            self.inputs_list = {k: v for k, v in self.inputs_list.items()
+                                if not isinstance(k, int) or k in set(int_keys)}
         print(mode, len(self))
         self.data_aug = self.transform()
         print("")
@@ -61,10 +65,10 @@ class BaseFeeder(data.Dataset):
         # load file info
         fi = self.inputs_list[index]
         if 'phoenix' in self.dataset:
-            img_folder = os.path.join(self.prefix, "features/fullFrame-256x256px/" + fi['folder'])  
+            img_folder = os.path.join(self.prefix, "features/fullFrame-256x256px/" + fi['folder'])
         elif self.dataset == 'CSL':
             img_folder = os.path.join(self.prefix, "features/fullFrame-256x256px/" + fi['folder'] + "/*.jpg")
-        elif self.dataset == 'CSL-Daily':
+        elif self.dataset in ('CSL-Daily', 'Isharah'):
             img_folder = os.path.join(self.prefix, fi['folder'])
         img_list = sorted(glob.glob(img_folder))
         img_list = img_list[int(torch.randint(0, self.frame_interval, [1]))::self.frame_interval]
@@ -74,10 +78,10 @@ class BaseFeeder(data.Dataset):
                 continue
             if phase in self.dict.keys():
                 label_list.append(self.dict[phase][0])
-        if self.dataset != 'CSL-Daily':
-            return [cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB) for img_path in img_list], label_list, fi
-        else:
+        if self.dataset == 'CSL-Daily':
             return [cv2.cvtColor(cv2.resize(cv2.imread(img_path)[40:, ...], (256, 256)), cv2.COLOR_BGR2RGB) for img_path in img_list], label_list, fi
+        else:
+            return [cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB) for img_path in img_list], label_list, fi
 
     def read_features(self, index):
         # load file info
