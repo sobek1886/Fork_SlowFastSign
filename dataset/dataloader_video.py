@@ -39,6 +39,11 @@ class BaseFeeder(data.Dataset):
         self.feat_prefix = f"{prefix}/features/fullFrame-256x256px/{mode}"
         self.transform_mode = "train" if transform_mode else "test"
         self.inputs_list = np.load(f"./preprocess/{dataset}/{mode}_info.npy", allow_pickle=True).item()
+        # Drop entries with no frames on disk (e.g. when only a subset of signers is available)
+        non_int = {k: v for k, v in self.inputs_list.items() if not isinstance(k, int)}
+        valid = [v for k, v in sorted((k, v) for k, v in self.inputs_list.items()
+                                      if isinstance(k, int)) if v.get('num_frames', 1) > 0]
+        self.inputs_list = {**non_int, **{i: v for i, v in enumerate(valid)}}
         if max_samples > 0:
             int_keys = sorted(k for k in self.inputs_list if isinstance(k, int))[:max_samples]
             self.inputs_list = {k: v for k, v in self.inputs_list.items()
