@@ -60,6 +60,10 @@ def get_parser():
         help='the interval for printing messages (#iteration)')
     parser.add_argument(
         '--evaluate-tool', default="python", help='sclite or python')
+    parser.add_argument(
+        '--mlflow-experiment', default='SlowFastSign', help='MLflow experiment name')
+    parser.add_argument(
+        '--mlflow-uri', default=None, help='MLflow tracking URI (default: ./mlruns)')
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # feeder

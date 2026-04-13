@@ -23,6 +23,12 @@ from modules.sync_batchnorm import convert_model
 from seq_scripts import seq_train, seq_eval, seq_feature_generation
 from torch.cuda.amp import autocast as autocast
 
+try:
+    import mlflow as _mlflow
+    _MLFLOW = True
+except ImportError:
+    _MLFLOW = False
+
 class Processor():
     def __init__(self, arg):
         self.arg = arg
@@ -63,6 +69,51 @@ class Processor():
             slowfast_args.append(value)
         self.arg.slowfast_args = slowfast_args
         self.model, self.optimizer = self.loading()
+        self._init_mlflow()
+
+    def _init_mlflow(self):
+        if not _MLFLOW:
+            return
+        import atexit
+        try:
+            if self.arg.mlflow_uri:
+                _mlflow.set_tracking_uri(self.arg.mlflow_uri)
+            _mlflow.set_experiment(self.arg.mlflow_experiment)
+            run_name = os.path.basename(self.arg.work_dir.rstrip('/'))
+            _mlflow.start_run(run_name=run_name)
+            _mlflow.log_params({
+                'dataset': self.arg.dataset,
+                'batch_size': self.arg.batch_size,
+                'num_epoch': self.arg.num_epoch,
+                'base_lr': self.arg.optimizer_args.get('base_lr'),
+                'num_classes': self.arg.model_args.get('num_classes'),
+                'c2d_type': self.arg.model_args.get('c2d_type'),
+                'conv_type': self.arg.model_args.get('conv_type'),
+                'loss_weights': str(self.arg.loss_weights),
+                'max_samples': self.arg.feeder_args.get('max_samples', 0),
+            })
+            _mlflow.set_tag('slurm_job_id', os.environ.get('SLURM_JOB_ID', 'unknown'))
+            _mlflow.set_tag('slurm_node', os.environ.get('SLURMD_NODENAME', 'unknown'))
+            job_id = os.environ.get('SLURM_JOB_ID', '')
+            job_name = os.environ.get('SLURM_JOB_NAME', '')
+            self._mlflow_log_file = (
+                os.path.join(os.getcwd(), 'jobs', 'output', f'slurm_{job_name}_{job_id}.txt')
+                if job_id and job_name else None
+            )
+
+            def _mlflow_cleanup():
+                try:
+                    if _mlflow.active_run() is None:
+                        return
+                    if self._mlflow_log_file and os.path.exists(self._mlflow_log_file):
+                        _mlflow.log_artifact(self._mlflow_log_file)
+                    _mlflow.end_run()
+                except Exception as exc:
+                    print(f'[MLflow] Warning: cleanup failed: {exc}')
+            atexit.register(_mlflow_cleanup)
+            print(f'[MLflow] Run started: {_mlflow.active_run().info.run_id}')
+        except Exception as exc:
+            print(f'[MLflow] Warning: could not initialize run: {exc}')
 
     def start(self):
         if self.arg.phase == 'train':
@@ -86,12 +137,16 @@ class Processor():
                     test_wer = seq_eval(self.arg, self.data_loader["test"], self.model, self.device,
                                         "test", 6667, self.arg.work_dir, self.recoder, self.arg.evaluate_tool)
                     self.recoder.print_log("Test WER: {:05.2f}%".format(test_wer))
+                if _MLFLOW and _mlflow.active_run() is not None:
+                    _mlflow.log_metrics({'dev_wer': dev_wer, 'test_wer': test_wer}, step=epoch)
                 if dev_wer < best_dev:
                     best_dev = dev_wer
                     best_epoch = epoch
                     model_path = "{}_best_model.pt".format(self.arg.work_dir)
                     self.save_model(epoch, model_path)
                     self.recoder.print_log('Save best model')
+                    if _MLFLOW and _mlflow.active_run() is not None:
+                        _mlflow.log_metric('best_dev_wer', best_dev, step=epoch)
                 self.recoder.print_log('Best_dev: {:05.2f}, Epoch : {}'.format(best_dev, best_epoch))
                 if save_model:
                     model_path = "{}dev_{:05.2f}_epoch{}_model.pt".format(self.arg.work_dir, dev_wer, epoch)

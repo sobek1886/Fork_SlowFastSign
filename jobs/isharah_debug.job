@@ -1,0 +1,18 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=isharah_debug
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=00:30:00
+#SBATCH --output=jobs/output/slurm_isharah_debug_%A.txt
+
+module purge
+module load 2025
+module load CUDA/12.6.0
+
+cd $HOME/Fork_SlowFastSign
+source .venv/bin/activate
+
+srun python main.py --device 0 --dataset Isharah --num-epoch 1 --eval-interval 1 --num-worker 4 --feeder-args max_samples=50 --work-dir ./work_dir/isharah_debug/ --mlflow-experiment SlowFastSign-Isharah
