@@ -33,13 +33,18 @@ class Processor():
     def __init__(self, arg):
         self.arg = arg
         if os.path.exists(self.arg.work_dir):
-            answer = input('Current dir exists, do you want to remove and refresh it?\n')
-            if answer in ['yes','y','ok','1']:
+            if os.environ.get('SLURM_JOB_ID'):
                 print('Dir removed !')
                 shutil.rmtree(self.arg.work_dir, ignore_errors=True)
                 os.makedirs(self.arg.work_dir)
             else:
-                print('Dir Not removed !')
+                answer = input('Current dir exists, do you want to remove and refresh it?\n')
+                if answer in ['yes','y','ok','1']:
+                    print('Dir removed !')
+                    shutil.rmtree(self.arg.work_dir, ignore_errors=True)
+                    os.makedirs(self.arg.work_dir)
+                else:
+                    print('Dir Not removed !')
         else:
             os.makedirs(self.arg.work_dir)
         if not self.arg.work_dir.endswith('/'):
