@@ -63,7 +63,7 @@ def get_parser():
     parser.add_argument(
         '--mlflow-experiment', default='SlowFastSign', help='MLflow experiment name')
     parser.add_argument(
-        '--mlflow-uri', default=None, help='MLflow tracking URI (default: ./mlruns)')
+        '--mlflow-uri', default='https://mlflow.ai.mytkhgroup.com/', help='MLflow tracking URI')
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     # feeder
