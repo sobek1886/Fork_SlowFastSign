@@ -1,6 +1,19 @@
 # Exp3: larger batch + scaled LR + earlier decay + lower distillation + auxiliary losses
+feeder: dataset.dataloader_video.BaseFeeder
+phase: train
+num_epoch: 80
+random_seed: 0
+num_worker: 9
+log_interval: 10000
+eval_interval: 1
+save_interval: 5
+evaluate_tool: python
+random_fix: True
+decode_mode: beam
+
 batch_size: 8
 test_batch_size: 8
+
 optimizer_args:
   optimizer: Adam
   base_lr: 0.0004
@@ -11,9 +24,29 @@ optimizer_args:
   weight_decay: 0.0001
   start_epoch: 0
   nesterov: False
+
 loss_weights:
   SeqCTC: 1.0
   ConvCTC: 1.0
   Dist: 10.0
   Slow: 0.25
   Fast: 0.25
+
+feeder_args:
+  mode: train
+  datatype: video
+  num_gloss: -1
+  drop_ratio: 1.0
+  frame_interval: 1
+  image_scale: 1.0
+  input_size: 224
+
+model: slr_network_multi.SLRModel
+slowfast_config: SLOWFAST_64x2_R101_50_50.yaml
+model_args:
+  num_classes: 686
+  c2d_type: slowfast101
+  conv_type: 2
+  use_bn: 1
+  share_classifier: 1
+  weight_norm: True
