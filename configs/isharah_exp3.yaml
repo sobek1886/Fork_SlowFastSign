@@ -1,0 +1,19 @@
+# Exp3: larger batch + scaled LR + earlier decay + lower distillation + auxiliary losses
+batch_size: 8
+test_batch_size: 8
+optimizer_args:
+  optimizer: Adam
+  base_lr: 0.0004
+  scheduler: multistep
+  step: [30, 50]
+  learning_ratio: 1
+  gamma: 0.2
+  weight_decay: 0.0001
+  start_epoch: 0
+  nesterov: False
+loss_weights:
+  SeqCTC: 1.0
+  ConvCTC: 1.0
+  Dist: 10.0
+  Slow: 0.25
+  Fast: 0.25

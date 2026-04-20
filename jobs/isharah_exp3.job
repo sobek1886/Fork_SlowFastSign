@@ -1,0 +1,17 @@
+#!/bin/bash
+
+#SBATCH --partition=gpu_a100
+#SBATCH --gpus=1
+#SBATCH --job-name=isharah_exp3
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=24:00:00
+#SBATCH --output=jobs/output/slurm_isharah_exp3_%A.txt
+
+module purge
+module load 2025
+
+cd $HOME/Fork_SlowFastSign
+source .venv/bin/activate
+
+srun python main.py --config configs/isharah_exp3.yaml --device 0 --dataset Isharah --num-epoch 80 --work-dir ./work_dir/isharah_exp3/ --mlflow-experiment SlowFastSign-Isharah

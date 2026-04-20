@@ -142,9 +142,14 @@ class Processor():
                     test_wer = seq_eval(self.arg, self.data_loader["test"], self.model, self.device,
                                         "test", 6667, self.arg.work_dir, self.recoder, self.arg.evaluate_tool)
                     self.recoder.print_log("Test WER: {:05.2f}%".format(test_wer))
-                if _MLFLOW and _mlflow.active_run() is not None:
-                    _mlflow.log_metrics({'dev_wer': dev_wer, 'test_wer': test_wer}, step=epoch)
-                if dev_wer < best_dev:
+                    if _MLFLOW and _mlflow.active_run() is not None:
+                        _mlflow.log_metrics({'dev_wer': dev_wer, 'test_wer': test_wer}, step=epoch)
+                        if self._mlflow_log_file and os.path.exists(self._mlflow_log_file):
+                            try:
+                                _mlflow.log_artifact(self._mlflow_log_file)
+                            except Exception as exc:
+                                print(f'[MLflow] Warning: artifact upload failed: {exc}')
+                if eval_model and dev_wer < best_dev:
                     best_dev = dev_wer
                     best_epoch = epoch
                     model_path = "{}_best_model.pt".format(self.arg.work_dir)
@@ -153,7 +158,7 @@ class Processor():
                     if _MLFLOW and _mlflow.active_run() is not None:
                         _mlflow.log_metric('best_dev_wer', best_dev, step=epoch)
                 self.recoder.print_log('Best_dev: {:05.2f}, Epoch : {}'.format(best_dev, best_epoch))
-                if save_model:
+                if save_model and eval_model:
                     model_path = "{}dev_{:05.2f}_epoch{}_model.pt".format(self.arg.work_dir, dev_wer, epoch)
                     seq_model_list.append(model_path)
                     print("seq_model_list", seq_model_list)

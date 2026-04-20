@@ -11,6 +11,12 @@ from evaluation.slr_eval.wer_calculation import evaluate
 from torch.cuda.amp import autocast as autocast
 from torch.cuda.amp import GradScaler
 
+try:
+    import mlflow as _mlflow
+    _MLFLOW = True
+except ImportError:
+    _MLFLOW = False
+
 def seq_train(loader, model, optimizer, device, epoch_idx, recoder):
     model.train()
     loss_value = []
@@ -46,11 +52,17 @@ def seq_train(loader, model, optimizer, device, epoch_idx, recoder):
             recoder.print_log(
                 '\tEpoch: {}, Batch({}/{}) done. Loss: {:.8f}  lr:{:.6f}'
                     .format(epoch_idx, batch_idx, len(loader), loss.item(), clr[0]))
+        if _MLFLOW and batch_idx % 100 == 0 and _mlflow.active_run() is not None:
+            global_step = epoch_idx * len(loader) + batch_idx
+            _mlflow.log_metric('train_loss', loss.item(), step=global_step)
         tqdm_loader.set_postfix({'Loss' : loss.item()})
         del ret_dict
         del loss
     optimizer.scheduler.step()
-    recoder.print_log('\tMean training loss: {:.10f}.'.format(np.mean(loss_value)))
+    mean_loss = np.mean(loss_value)
+    recoder.print_log('\tMean training loss: {:.10f}.'.format(mean_loss))
+    if _MLFLOW and _mlflow.active_run() is not None:
+        _mlflow.log_metric('train_loss_epoch', mean_loss, step=epoch_idx)
     return 
 
 
