@@ -11,8 +11,8 @@ evaluate_tool: python
 random_fix: True
 decode_mode: beam
 
-batch_size: 8
-test_batch_size: 8
+batch_size: 4
+test_batch_size: 4
 
 optimizer_args:
   optimizer: Adam
