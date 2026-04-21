@@ -6,7 +6,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --time=00:30:00
-#SBATCH --output=jobs/output/slurm_isharah_exp_debug_%A.txt
+#SBATCH --output=/scratch-shared/psobecki/Fork_SlowFastSign/jobs/output/slurm_isharah_exp_debug_%A.txt
 
 module purge
 module load 2025
